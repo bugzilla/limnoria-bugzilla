@@ -32,6 +32,7 @@
 import re
 from pprint import pprint
 from email.Header import decode_header
+from email.Iterators import typed_subpart_iterator
 
 #############
 # Constants #
@@ -308,7 +309,14 @@ class Bugmail:
         self.bug_id = int(subjectMatch.group('bug_id'))
         self.new    = bool(subjectMatch.group('new'))
 
-        messageBody = message.get_payload(decode=True)
+        # Bugzilla v4.2 sends multipart bugmail
+        if not message.is_multipart():
+            messageBody = message.get_payload(decode=True)
+        else:
+            # Extract last text/plain part
+            for part in typed_subpart_iterator(message, subtype='plain'):
+                messageBody = part.get_payload(decode=True)
+
         # Normalize newlines
         messageBody = messageBody.replace("\r\n", "\n")
 
@@ -318,11 +326,12 @@ class Bugmail:
             # there can be a diff table and then a comment below it. The
             # diff table is separated from the bug fields by \n\n, and the
             # comment is separated from the diff table by \n\n.
+            if not diffStartMatch:
+                diffStartMatch = re.search(r"\n\n\n", messageBody)
             if diffStartMatch:
                 diffStart = diffStartMatch.start()
             else:
-                diffStartMatch = re.search(r"\n\n\n", messageBody)
-                diffStart = diffStartMatch.start()
+                diffStart = 1
 
             commentStartMatch = re.search(r"\n\n\n", messageBody[diffStart:])
             if commentStartMatch:
