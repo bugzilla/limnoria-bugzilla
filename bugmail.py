@@ -51,7 +51,7 @@ MULTI_FIELDS = ['CC', 'Group', 'Keywords', 'Blocks', 'Depends on']
    two different fields. So, instead, we store a list of strings to use
    as an argument to "grep" for the field names that we need to "unwrap."'''
 UNWRAP_WHAT = [re.compile('^Attachment .\d+$'), re.compile('^OtherBugsDep'),
-               re.compile('^Attachment .\d+ is')]
+               re.compile('^Attachment .\d+ is'), re.compile('^Attachment$')]
 
 '''Should be whatever Bugzilla::Util::find_wrap_point (or FindWrapPoint)
    breaks on, in Bugzilla.'''
@@ -218,8 +218,9 @@ def _appendDiffLine (append_to, prev_line, append_line, max_width):
     # If the previous line is the width of the entire column, we
     # assume that we were forcibly wrapped in the middle of a word,
     # and no space is needed. We only add the space if we were actually
-    # given a non-empty string to append.
-    if (append_line and len(prev_line) != max_width):
+    # given a non-empty string to append. Additinally, no blank is needed
+    # if the previous line was empty.
+    if (append_line and len(prev_line) > 0 and len(prev_line) != max_width):
         # However, sometimes even if we have a very short line, if it ended
         # in a "breaking character" like '-' then we also don't need a space.
         if prev_line[-1] not in BREAKING_CHARACTERS: ret_line += " "
@@ -383,7 +384,7 @@ class Bugmail:
             if dupMatch and self.changed('Resolution'): self.dupe_of = int(dupMatch.group(1))
 
         # Attachment ID, which lives in the comment.
-        attachMatch = re.search('^Created an attachment \(id=(\d+)\)',
+        attachMatch = re.search('^Created (?:an\s)?attachment \(id=(\d+)\)',
                                 self.comment, re.M)
         if attachMatch: self.attach_id = int(attachMatch.group(1))
 

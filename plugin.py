@@ -337,8 +337,12 @@ class BugzillaInstall:
 
         bugs = self._getBugXml(ids)
         bug_strings = [];
-        for bug in bugs:
-            bug_id = bug.getElementsByTagName('bug_id')[0].childNodes[0].data
+        for i, bug in enumerate(bugs):
+            # For some errors bug_id element is empty
+            bug_id = _getTagText(bug, 'bug_id')
+            if not bug_id:
+                bug_id = ids[i]
+
             if show_url:
                 bug_url = '%sshow_bug.cgi?id=%s' \
                           % (self.url, urllib.quote(bug_id))
@@ -483,8 +487,8 @@ class BugzillaInstall:
         # If we have anything to say in this channel about this
         # bug, then say it.
         if lines:
-            self.plugin.log.debug('Reporting %d change(s) to %s' \
-                                  % (len(lines), channel))
+            self.plugin.log.info('Reporting %d change(s) to %s' \
+                                 % (len(lines), channel))
             if say_attachments:
                 attach_strings = self.getAttachmentsOnBug(say_attachments, \
                     bug.bug_id, channel)
@@ -537,8 +541,12 @@ class BugzillaInstall:
                 if removed:           line += " removed %s from" % removed
                 line += " the %s field%s." % (what, bug_string)
             elif (what in ['Resolution', 'Status'] and added.find('DUPLICATE') != -1):
-                line += " marked bug %d as a duplicate of bug %d." % \
-                        (bm.bug_id, bm.dupe_of)
+                if bm.dupe_of:
+                    line += " marked bug %d as a duplicate of bug %d." % \
+                            (bm.bug_id, bm.dupe_of)
+                else:
+                    line += " marked bug %d as a duplicate of unknown bug." % \
+                            (bm.bug_id)
             # We only added something.
             elif not removed:
                 line += " set the %s field%s to %s." % (what, bug_string, added)
@@ -658,6 +666,8 @@ class BugzillaInstall:
         try:
             return minidom.parseString(bugxml).getElementsByTagName('bug')
         except Exception:
+            self.plugin.log.exception('Exception during bug XML parsing:')
+            self.plugin.log.error("Bug XML:\n%s" % bugxml)
             return []
 
     def _bugError(self, bug, bug_url):
@@ -905,7 +915,7 @@ class Bugzilla(callbacks.PluginRegexp):
                     continue
                 except:
                     self.log.exception('Exception while parsing message:')
-                    self.log.debug("Message:\n%s" % message.as_string())
+                    self.log.error("Message:\n%s" % message.as_string())
             boxFile.truncate(0)
         finally:
             _unlock_file(boxFile)
@@ -919,7 +929,7 @@ class Bugzilla(callbacks.PluginRegexp):
                 installation = self._bzByUrl(mail.urlbase)
             except BugzillaNotFound:
                 installation = self._defaultBz()
-            self.log.debug('Handling bugmail for bug %s on %s (%s)' \
+            self.log.info('Handling bugmail for bug %s on %s (%s)' \
                            % (mail.bug_id, mail.urlbase, installation.name))
             installation.handleBugmail(mail)
 
