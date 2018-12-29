@@ -71,7 +71,7 @@ ATTACH_TITLE_SIZE = 512
 
 ######################################
 # Utility Functions for Mbox Polling #
-###################################### 
+######################################
 
 def _lock_file(f):
     """Lock file f using lockf and dot locking."""
@@ -192,7 +192,7 @@ def registerBugzilla(name, url=''):
     conf.registerGlobalValue(install, 'url',
         registry.String(url, """Determines the URL to this Bugzilla
         installation. This must be identical to the urlbase (or sslbase)
-        parameter used by the installation. (The url that shows up in 
+        parameter used by the installation. (The url that shows up in
         emails.) It must end with a forward slash."""))
     conf.registerChannelValue(install, 'queryTerms',
         registry.String('',
@@ -221,7 +221,7 @@ def registerBugzilla(name, url=''):
         'Attachment Flags', 'Resolution', 'Product', 'Component'],
         """The names of fields, as they appear in bugmail, that should be
         reported to this channel."""))
-    
+
     conf.registerGroup(install, 'traces')
     conf.registerChannelValue(install.traces, 'report',
         registry.Boolean(False, """Some Bugzilla installations have gdb
@@ -248,7 +248,7 @@ class BugzillaInstall:
     """Represents a single Bugzilla."""
 
     '''Words that describe each flag status except "requested."'''
-    status_words = { '+' : 'granted', '-' : 'denied', 
+    status_words = { '+' : 'granted', '-' : 'denied',
                      'cancelled' : 'cancelled' }
 
     def __init__(self, plugin, name):
@@ -272,7 +272,7 @@ class BugzillaInstall:
                    % (self.url, urllib.quote(fullTerms))
         if not total and limit:
             queryurl = '%s&limit=%d' % (queryurl, limit)
-        
+
         self.plugin.log.debug('Query: %s' % queryurl)
 
         bug_csv = utils.web.getUrl(queryurl)
@@ -407,7 +407,7 @@ class BugzillaInstall:
             if resolution['removed']:
                 status['removed'] = status['removed'] + ' ' \
                                     + resolution['removed']
-                    
+
         for irc in world.ircs:
             for channel in irc.state.channels.keys():
                 if self._shouldAnnounceBugInChannel(bug, channel):
@@ -446,14 +446,14 @@ class BugzillaInstall:
         for diff in bug.diffs():
             if not self._shouldAnnounceChangeInChannel(diff, channel):
                 continue
-            
+
             # If we're watching both status and resolution, and both
             # change, don't say Status--say resolution instead.
             if (('Resolution' in report or 'All' in report)
                 and bug.changed('Resolution')
                 and bug.changed('Status')):
                 if diff['what'] == 'Status': continue
-                if diff['what'] == 'Resolution': 
+                if diff['what'] == 'Resolution':
                     diff = bug.changed('Status')[0]
 
             if ('attachment' in diff
@@ -464,7 +464,7 @@ class BugzillaInstall:
 
             bug_messages = self._diff_messages(channel, bug, diff)
             lines.extend(bug_messages)
-            
+
         # Do the formatting for changes
         lines = [self.plugin._formatLine(l, channel, 'change') \
                  for l in lines]
@@ -491,11 +491,11 @@ class BugzillaInstall:
                 lines.extend(attach_strings)
             if self.plugin._shouldSayBug(bug.bug_id, channel):
                 lines.extend(self.getBugs([bug.bug_id], channel))
-            if bug.dupe_of and self.plugin._shouldSayBug(bug.dupe_of, channel): 
+            if bug.dupe_of and self.plugin._shouldSayBug(bug.dupe_of, channel):
                 lines.extend(self.getBugs([bug.dupe_of], channel))
             for line in lines:
                 self._send(irc, channel, line)
-                
+
     def _diff_messages(self, channel, bm, diff):
         lines = []
 
@@ -517,11 +517,11 @@ class BugzillaInstall:
                     else:
                         flag_name = flag['name']
 
-                    lines.append('%s %s %s%s.' % (bm.changer, word, 
+                    lines.append('%s %s %s%s.' % (bm.changer, word,
                                                   flag_name, bug_string))
             for flag in flags['?']:
                 requestee = self.plugin.registryValue('messages.noRequestee', channel)
-                if flag['requestee']: 
+                if flag['requestee']:
                     requestee = 'from ' + flag['requestee']
                 lines.append('%s requested %s %s%s.' % (bm.changer,
                              flag['name'], requestee, bug_string))
@@ -545,7 +545,7 @@ class BugzillaInstall:
             # We only removed something
             elif not added:
                 line += " cleared the %s '%s'%s." % (what, removed, bug_string)
-            # We changed the value of a field from something to 
+            # We changed the value of a field from something to
             # something else
             else:
                 line += " changed the %s%s from %s to %s." % \
@@ -553,7 +553,7 @@ class BugzillaInstall:
 
             lines.append(line)
         return lines
-        
+
     def _traceLine(self, trace, channel):
         self.plugin.log.debug('Making line for trace: %r' % trace)
         usedThread = trace.threads[0]
@@ -565,12 +565,12 @@ class BugzillaInstall:
                 usedThread = thread
                 interesting = True
                 break
-            
+
         if not interesting: fIndex = 0
             #for f in self.plugin.registryValue('bugzillas.%s.traces.crashStarts'
             #                                   % self.name, channel):
             #    fIndex = thread.functionIndex(f)
-                
+
         funcs = []
         maxFrames = self.plugin.registryValue(\
             'bugzillas.%s.traces.frameLimit' % self.name, channel)
@@ -590,24 +590,24 @@ class BugzillaInstall:
         if not interesting:
             line = line + ' (Possibly not interesting)'
         return line
-    
+
     ########################################
     # Bugmail Handling: Helper Subroutines #
     ########################################
-    
+
     def _send(self, irc, channel, line):
         msg = ircmsgs.privmsg(channel, line)
         irc.queueMsg(msg)
-   
+
     def reportFor(self, channel):
         return self.plugin.registryValue('bugzillas.%s.reportedChanges' \
                                          % self.name, channel)
-   
+
     def _shouldAnnounceBugInChannel(self, bug, channel):
         if self.plugin.registryValue('bugzillas.%s.watchedItems.all' \
                                      % self.name, channel):
             return True
-        
+
         # If something was just removed from a particular field, we
         # want to still report that change in the proper channel.
         field_values = bug.fields()
@@ -629,7 +629,7 @@ class BugzillaInstall:
                 except registry.NonExistentRegistryEntry:
                     continue
                 except: raise
-                
+
         return False
 
     def _shouldAnnounceChangeInChannel(self, diff, channel):
@@ -641,7 +641,7 @@ class BugzillaInstall:
     ##############################
     # General Helper Subroutines #
     ##############################
-            
+
     def _getBugXml(self, ids):
         queryurl = self.url \
                    + 'show_bug.cgi?ctype=xml&excludefield=long_desc' \
@@ -654,8 +654,8 @@ class BugzillaInstall:
         bugxml = utils.web.getUrl(queryurl)
         if not bugxml:
             raise callbacks.Error, 'Got empty bug content'
-       
-        try: 
+
+        try:
             return minidom.parseString(bugxml).getElementsByTagName('bug')
         except Exception:
             return []
@@ -717,7 +717,7 @@ class Bugzilla(callbacks.PluginRegexp):
         self.setRegistryValue('bugzillas', bugzillas)
         irc.replySuccess()
     add = wrap(add, ['admin', 'somethingWithoutSpaces','url'])
-             
+
     def attachment(self, irc, msg, args, attach_ids):
         """<attach_id> [<attach_id>]+
         Reports the details of the attachment with that id to this channel.
@@ -737,7 +737,7 @@ class Bugzilla(callbacks.PluginRegexp):
         by spaces, commas, and the word "and" if you want."""
 
         channel = msg.args[0]
-        bug_ids = re.split('[!?.,\(\)\s]|[\b\W]and[\b\W]*|\bbug\b', 
+        bug_ids = re.split('[!?.,\(\)\s]|[\b\W]and[\b\W]*|\bbug\b',
                            bug_id_string)
         installation = self._defaultBz(channel)
         bug_strings = installation.getBugs(bug_ids, channel)
@@ -749,10 +749,10 @@ class Bugzilla(callbacks.PluginRegexp):
         """[--total] [--install=<install name>] <search terms>
         Searches your Bugzilla using the QuickSearch syntax, and returns
         a certain number of results.
-        
+
         --install specifies the name of an installation to search, instead
         of using the channel's default installation.
-        
+
         If you specify --total, it will return the total number of results
         found, instead of the actual results."""
 
@@ -768,11 +768,11 @@ class Bugzilla(callbacks.PluginRegexp):
                 except BugzillaNotFound:
                     irc.error("No install named '%s'" % name)
                     return
-        
+
         limit = self.registryValue('queryResultLimit', channel)
         strings = installation.query(query_string, total, channel, limit)
         for s in strings: irc.reply(s)
-        
+
     query = wrap(query, [getopts({'total' : '', 'install' : 'something'}), 'text'])
 
     def snarfBug(self, irc, msg, match):
@@ -786,9 +786,9 @@ class Bugzilla(callbacks.PluginRegexp):
         self.log.debug('Snarfed Bug ID(s): ' + ' '.join(id_matches))
         # Check if the bug has been already snarfed in the last X seconds
         for id in id_matches:
-            if type.lower() == 'bug': 
+            if type.lower() == 'bug':
                 should_say = self._shouldSayBug(id, channel)
-            else: 
+            else:
                 should_say = self._shouldSayAttachment(id, channel)
 
             if should_say:
@@ -797,9 +797,9 @@ class Bugzilla(callbacks.PluginRegexp):
 
         self.log.debug('Install: %r' % match.group('install'))
         installation = self._bzOrDefault(match.group('install'), channel)
-        if type.lower() == 'bug': 
+        if type.lower() == 'bug':
             strings = installation.getBugs(ids, channel)
-        else: 
+        else:
             strings = installation.getAttachments(ids, channel)
 
         for s in strings:
@@ -820,22 +820,22 @@ class Bugzilla(callbacks.PluginRegexp):
         bug_strings = installation.getBugs(bug_ids, channel, show_url=False)
         for s in bug_strings:
             irc.reply(s, prefixNick=False)
-    
+
     def _bzOrDefault(self, name, channel):
         if name is None:
             return self._defaultBz(channel)
-        
+
         try:
             bz = BugzillaInstall(self, name)
         except BugzillaNotFound:
             bz = self._defaultBz(channel)
-            
+
         return bz
-    
+
     def _defaultBz(self, channel=None):
         name = self.registryValue('defaultBugzilla', channel)
         return BugzillaInstall(self, name)
-            
+
     def _bzByUrl(self, url):
         domainMatch = re.match('https?://(\S+)/', url, re.I)
         domain = domainMatch.group(1)
@@ -844,7 +844,7 @@ class Bugzilla(callbacks.PluginRegexp):
             if group.url().lower().find(domain.lower()) > -1:
                 return BugzillaInstall(self, name)
         raise BugzillaNotFound, 'No Bugzilla with URL %s' % url
-        
+
     def _formatLine(self, line, channel, type):
         """Implements the 'format' configuration options."""
         format = self.registryValue('format.%s' % type, channel)
@@ -885,7 +885,7 @@ class Bugzilla(callbacks.PluginRegexp):
 
     def _pollMbox(self):
 #        return
-#    
+#
 #    def poll(self, irc, msg, args):
         file_name = self.registryValue('mbox')
         if not file_name: return
@@ -912,7 +912,7 @@ class Bugzilla(callbacks.PluginRegexp):
             boxFile.close()
 
         self._handleBugmails(bugmails)
-    
+
     def _handleBugmails(self, bugmails):
         for mail in bugmails:
             try:

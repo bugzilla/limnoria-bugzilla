@@ -39,21 +39,21 @@ from email.Iterators import typed_subpart_iterator
 #############
 
 '''These are fields that are multi-select fields, so when somebody
-   adds something to them, the verbs "added to " or "removed from" should 
+   adds something to them, the verbs "added to " or "removed from" should
    be used instead of the verb "changed" or "set".
 
-   The fields are named as they appear in the "What" part of a bugmail 
+   The fields are named as they appear in the "What" part of a bugmail
    "changes" table.'''
 MULTI_FIELDS = ['CC', 'Group', 'Keywords', 'Blocks', 'Depends on']
 
-'''Some fields have such long names for the "What" column that their 
+'''Some fields have such long names for the "What" column that their
    names wrap. Normally, our code would think that those fields were
    two different fields. So, instead, we store a list of strings to use
    as an argument to "grep" for the field names that we need to "unwrap."'''
 UNWRAP_WHAT = [re.compile('^Attachment .\d+$'), re.compile('^OtherBugsDep'),
                re.compile('^Attachment .\d+ is')]
 
-'''Should be whatever Bugzilla::Util::find_wrap_point (or FindWrapPoint) 
+'''Should be whatever Bugzilla::Util::find_wrap_point (or FindWrapPoint)
    breaks on, in Bugzilla.'''
 BREAKING_CHARACTERS = [' ',',','-']
 
@@ -73,13 +73,13 @@ def _parseDiffs(changesPart):
     diffTableMatches = diff_re.finditer(changesPart)
     if not diffTableMatches: return []
     diffTable = [line.group() for line in diffTableMatches]
-    if not diffTable: return [] 
+    if not diffTable: return []
     # Remove the "What/Removed/Added" line.
     del diffTable[0];
     diffs = [];
     # We use "while" instead of a list comprehension because the function
     # modifies diffTable.
-    while (diffTable): 
+    while (diffTable):
         line = _getNextDiffLine(diffTable)
         diffs.append(line);
 
@@ -127,7 +127,7 @@ def _normalizeDiffs(diffs):
         if match:
             normalized['what'] = 'Attachment' + match.group(2)
             normalized['attachment'] = match.group(1)
-        
+
         returnDiffs.append(normalized)
     return returnDiffs
 
@@ -179,7 +179,7 @@ def _parseFlagEntry(diff):
             from_flag = change['from']
 
             # Possible ways a flag can be cancelled: We simply removed
-            # the flag, we changed the requestee (meaning both flags will be 
+            # the flag, we changed the requestee (meaning both flags will be
             # '?', or we moved from granted/denied to '?'. That means
             # if from_flag exists and to_flag is ever set to '?', we
             # cancelled something.
@@ -206,12 +206,12 @@ def _parseFlag(flagString):
 
 #####################
 # Utility Functions #
-#####################        
+#####################
 
 # existing string.
 def _appendDiffLine (append_to, prev_line, append_line, max_width):
     '''When processing the "diffs" table in a bug, some lines wrap. This
-       function properly appends the "next" line for unwrapping to an 
+       function properly appends the "next" line for unwrapping to an
        existing string.'''
     ret_line = append_to;
 
@@ -244,24 +244,24 @@ class Bugmail:
 
     # Constants
     '''These are fields that are multi-select fields, so when somebody
-       adds something to them, the verbs "added to " or "removed from" should 
+       adds something to them, the verbs "added to " or "removed from" should
        be used instead of the verb "changed" or "set".
 
-       The fields are named as they appear in the "What" part of a bugmail 
+       The fields are named as they appear in the "What" part of a bugmail
        "changes" table.'''
-    MULTI_FIELDS = ['CC', 'Group', 'Keywords', 'BugsThisDependsOn', 
+    MULTI_FIELDS = ['CC', 'Group', 'Keywords', 'BugsThisDependsOn',
                     'OtherBugsDependingOnThis']
 
-    '''Some fields have such long names for the "What" column that their 
+    '''Some fields have such long names for the "What" column that their
        names wrap. Normally, our code would think that those fields were
        two different fields. So, instead, we store a list of strings to use
        as an argument to "grep" for the field names that we need to
        "unwrap."'''
-    UNWRAP_WHAT = [re.compile('^Attachment .\d+$'), 
-                   re.compile('^Attachment .\d+ is'), 
+    UNWRAP_WHAT = [re.compile('^Attachment .\d+$'),
+                   re.compile('^Attachment .\d+ is'),
                    re.compile('^OtherBugsDep')]
 
-    '''Should be whatever Bugzilla::Util::find_wrap_point (or FindWrapPoint) 
+    '''Should be whatever Bugzilla::Util::find_wrap_point (or FindWrapPoint)
        breaks on, in Bugzilla.'''
     BREAKING_CHARACTERS = [' ',',','-']
 
@@ -286,7 +286,7 @@ class Bugmail:
         self.severity  = _get_header(message['X-Bugzilla-Severity'])
         self.priority  = _get_header(message['X-Bugzilla-Priority'])
         self.assignee  = _get_header(message['X-Bugzilla-Assigned-To'])
-        
+
         # Get the urlbase of the installation
         if 'In-Reply-To' in message:
             baseHeader = _get_header(message['In-Reply-To'])
@@ -353,11 +353,11 @@ class Bugmail:
                 if self.changer == 'None':
                     self.changer = commentLineMatch.group('who').strip()
             if self.changer == 'None':
-                whoMatch = re.search('^(?P<who>.*)\s+changed:$', messageBody, 
+                whoMatch = re.search('^(?P<who>.*)\s+changed:$', messageBody,
                                      re.M)
                 # whoMatch can be None, in a dependency change.
                 if whoMatch: self.changer = whoMatch.group('who')
-       
+
         # Diff Table
         changesPart = messageBody[:commentStart].strip()
         self.diffPart = changesPart # For debugging
@@ -369,7 +369,7 @@ class Bugmail:
         commentEnd = None
         sig = re.search("^-- $", messageBody, re.M)
         if sig: commentEnd = sig.start() - 1
-        
+
         self.comment = messageBody[commentStart:commentEnd].strip()
 
         self._diffArray = []
