@@ -384,7 +384,7 @@ class Bugmail:
             if dupMatch and self.changed('Resolution'): self.dupe_of = int(dupMatch.group(1))
 
         # Attachment ID, which lives in the comment.
-        attachMatch = re.search('^Created (?:an\s)?attachment \(id=(\d+)\)',
+        attachMatch = re.search('^Created (?:an\s)?attachment (?:\(id=)?(\d+)(?:\))?',
                                 self.comment, re.M)
         if attachMatch: self.attach_id = int(attachMatch.group(1))
 
