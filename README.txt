@@ -1,7 +1,7 @@
-This plugin supports querying Bugzilla installations, showing details about
-bugs, and reading bugmails sent from Bugzilla to show updates in an IRC
-channel. It supports working with multiple Bugzilla installations and can
-work across many channels and networks.
+This plugin for Limnoria supports querying Bugzilla installations, showing
+details about bugs, and reading bugmails sent from Bugzilla to show updates in
+an IRC channel. It supports working with multiple Bugzilla installations and
+can work across many channels and networks.
 
 The main commands you'll be interested in at first are "Bugzilla add", and
 then "query" and "bug". Then you should set the
