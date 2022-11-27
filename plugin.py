@@ -918,6 +918,8 @@ class Bugzilla(callbacks.PluginRegexp):
                     self.log.exception('Exception while parsing message:')
                     self.log.error("Message:\n%s" % message.as_string())
             boxFile.truncate(0)
+        except:
+            self.log.error("Failed to open %s" % boxFile);
         finally:
             _unlock_file(boxFile)
             boxFile.close()
