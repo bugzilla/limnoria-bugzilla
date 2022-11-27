@@ -60,7 +60,7 @@ class StackFrame:
             self.fields = match.groupdict()
         else:
             if signal == -1:
-                raise FrameParseError, "Couldn't parse %s" % string
+                raise FrameParseError("Couldn't parse %s" % string)
             self.fields = { 'args' : '', 'func' : '' }
         
         self.args = {}
@@ -132,7 +132,7 @@ def _getNextFrameLine(lines):
 class Trace:
     def __init__(self, string):
         if not traceRe.search(string):
-            raise NoTrace, "This doesn't look like a stack trace."
+            raise NoTrace("This doesn't look like a stack trace.")
 
         binMatch = BIN_REGEX.search(string)
         if binMatch:
@@ -182,7 +182,7 @@ class Trace:
             lastLineWasBlank = False
             
         self.threads = []
-        threadNums = threads.keys()
+        threadNums = list(threads.keys())
         threadNums.sort()
         for num in threadNums:
             self.threads.append(threads[num])

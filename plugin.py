@@ -43,11 +43,11 @@ import supybot.callbacks as callbacks
 import supybot.plugins.Web.plugin as Web
 
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import xml.dom.minidom as minidom
 
-import bugmail
-import traceparser
+from . import bugmail
+from . import traceparser
 
 import mailbox
 import email
@@ -55,6 +55,7 @@ from time import time, sleep
 import os
 import errno
 import sys
+import importlib
 try:
     import fcntl
 except ImportError:
@@ -95,11 +96,11 @@ def _lock_file(f):
                 else:
                     os.rename(pre_lock.name, f.name + '.lock')
                     dotlock_done = True
-            except OSError, e:
+            except OSError as e:
                 if e.errno != errno.EEXIST: raise
 
             if time() - start_dotlock > MAX_DOTLOCK_WAIT:
-                raise IOError, 'Timed-out while waiting for dot-lock'
+                raise IOError('Timed-out while waiting for dot-lock')
 
     except:
         if fcntl:
@@ -162,8 +163,8 @@ def _getXmlText(node):
 # XXX This has to come back into use.
 def _aliasAlreadyInUse(v):
     allInstalls  = conf.supybot.plugins.Bugzilla.bugzillas._children
-    allAliases = allInstalls.keys()[:]
-    for name, group in allInstalls.iteritems():
+    allAliases = list(allInstalls.keys())[:]
+    for name, group in allInstalls.items():
         allAliases.extend(group.aliases())
     # XXX Somehow we have to exclude the installation we're
     # modifying.
@@ -255,7 +256,7 @@ class BugzillaInstall:
         try:
             self.conf = conf.supybot.plugins.Bugzilla.bugzillas.get(name.lower())
         except registry.NonExistentRegistryEntry:
-            raise BugzillaNotFound, 'No Bugzilla called %s' % name
+            raise BugzillaNotFound('No Bugzilla called %s' % name)
         self.url  = self.conf.url()
         self.name = name
         #self.aliases = self.conf.aliases()
@@ -269,7 +270,7 @@ class BugzillaInstall:
         fullTerms = "%s %s" % (terms, baseTerms)
         fullTerms = fullTerms.strip()
         queryurl = '%sbuglist.cgi?quicksearch=%s&ctype=csv&columnlist=bug_id' \
-                   % (self.url, urllib.quote(fullTerms))
+                   % (self.url, urllib.parse.quote(fullTerms))
         if not total and limit:
             queryurl = '%s&limit=%d' % (queryurl, limit)
 
@@ -277,7 +278,7 @@ class BugzillaInstall:
 
         bug_csv = utils.web.getUrl(queryurl)
         if not bug_csv:
-             raise callbacks.Error, 'Got empty CSV'
+             raise callbacks.Error('Got empty CSV')
 
         if bug_csv.find('DOCTYPE') == -1:
             bug_ids = bug_csv.split("\n")
@@ -323,7 +324,7 @@ class BugzillaInstall:
             attach_bugs[bug_id].append(attach_id)
 
         # Get the attachment details
-        for bug_id, attachments in attach_bugs.iteritems():
+        for bug_id, attachments in attach_bugs.items():
             self.plugin.log.debug('Getting attachments %r on bug %s' % \
                                   (attachments, bug_id))
             attach_strings = self.getAttachmentsOnBug(attachments,
@@ -345,7 +346,7 @@ class BugzillaInstall:
 
             if show_url:
                 bug_url = '%sshow_bug.cgi?id=%s' \
-                          % (self.url, urllib.quote(bug_id))
+                          % (self.url, urllib.parse.quote(bug_id))
             else:
                 bug_url = bug_id + ':'
 
@@ -413,7 +414,7 @@ class BugzillaInstall:
                                     + resolution['removed']
 
         for irc in world.ircs:
-            for channel in irc.state.channels.keys():
+            for channel in list(irc.state.channels.keys()):
                 if self._shouldAnnounceBugInChannel(bug, channel):
                     try:
                         self._handleBugmailForChannel(bug, irc, channel)
@@ -510,7 +511,7 @@ class BugzillaInstall:
         bug_string = '%s on bug %d' % (attach_string, bm.bug_id)
         if 'flags' in diff:
             flags = diff['flags']
-            for status, word in self.status_words.iteritems():
+            for status, word in self.status_words.items():
                 for flag in flags[status]:
                     # Cancelled flags show up like review?somebody
                     if status == 'cancelled':
@@ -619,14 +620,14 @@ class BugzillaInstall:
         # If something was just removed from a particular field, we
         # want to still report that change in the proper channel.
         field_values = bug.fields()
-        for field in field_values.keys():
+        for field in list(field_values.keys()):
             array = [field_values[field]]
             old_item = bug.changed(field)
             if old_item:
                 array.append(old_item[0]['removed'])
             field_values[field] = array
 
-        for field, array in field_values.iteritems():
+        for field, array in field_values.items():
             for value in array:
                 # Check the configuration for this product, component,
                 # etc.
@@ -655,13 +656,13 @@ class BugzillaInstall:
                    + 'show_bug.cgi?ctype=xml&excludefield=long_desc' \
                    + '&excludefield=attachmentdata'
         for id in ids:
-            queryurl = queryurl + '&id=' + urllib.quote(str(id))
+            queryurl = queryurl + '&id=' + urllib.parse.quote(str(id))
 
         self.plugin.log.debug('Getting bugs from %s' % queryurl)
 
         bugxml = utils.web.getUrl(queryurl)
         if not bugxml:
-            raise callbacks.Error, 'Got empty bug content'
+            raise callbacks.Error('Got empty bug content')
 
         try:
             return minidom.parseString(bugxml).getElementsByTagName('bug')
@@ -698,7 +699,7 @@ class Bugzilla(callbacks.PluginRegexp):
         self.saidBugs = ircutils.IrcDict()
         self.saidAttachments = ircutils.IrcDict()
         sayTimeout = self.registryValue('bugSnarferTimeout')
-        for k in irc.state.channels.keys():
+        for k in list(irc.state.channels.keys()):
             self.saidBugs[k] = TimeoutQueue(sayTimeout)
             self.saidAttachments[k] = TimeoutQueue(sayTimeout)
         period = self.registryValue('mboxPollTimeout')
@@ -706,7 +707,7 @@ class Bugzilla(callbacks.PluginRegexp):
                                   now=False)
         for name in self.registryValue('bugzillas'):
             registerBugzilla(name)
-        reload(sys)
+        importlib.reload(sys)
         sys.setdefaultencoding('utf-8')
 
     def die(self):
@@ -850,10 +851,10 @@ class Bugzilla(callbacks.PluginRegexp):
         domainMatch = re.match('https?://(\S+)/', url, re.I)
         domain = domainMatch.group(1)
         installs = self.registryValue('bugzillas', value=False)
-        for name, group in installs._children.iteritems():
+        for name, group in installs._children.items():
             if group.url().lower().find(domain.lower()) > -1:
                 return BugzillaInstall(self, name)
-        raise BugzillaNotFound, 'No Bugzilla with URL %s' % url
+        raise BugzillaNotFound('No Bugzilla with URL %s' % url)
 
     def _formatLine(self, line, channel, type):
         """Implements the 'format' configuration options."""

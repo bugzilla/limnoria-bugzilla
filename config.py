@@ -48,7 +48,7 @@ def configure(advanced):
 
 class ColorString(registry.OnlySomeStrings):
     """That is not a valid color/format string."""
-    validStrings = ircutils.mircColors.keys()
+    validStrings = list(ircutils.mircColors.keys())
     validStrings.extend(['bold', 'reverse', 'underlined', ''])
 
 class FormatString(registry.CommaSeparatedListOfStrings):

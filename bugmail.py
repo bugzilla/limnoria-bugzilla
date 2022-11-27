@@ -173,7 +173,7 @@ def _parseFlagEntry(diff):
             flag_from_to[name].append({ 'from' : None, 'to' : flag })
 
     status    = { '+' : [], '-' : [], '?' : [], 'cancelled': [] }
-    for name, changes in flag_from_to.iteritems():
+    for name, changes in flag_from_to.items():
         for change in changes:
             to_flag   = change['to']
             from_flag = change['from']
@@ -274,7 +274,7 @@ class Bugmail:
     def __init__(self, message):
         # Make sure this is actually a bug mail
         if not message['X-Bugzilla-Product']:
-            raise NotBugmailException, 'Email lacks X-Bugzilla-Product header'
+            raise NotBugmailException('Email lacks X-Bugzilla-Product header')
         # Initialize fields used lower that aren't always set
         self.dupe_of = None
         self.attach_id = None
@@ -306,7 +306,7 @@ class Bugmail:
         subjectMatch = re.search('\s*\[\w+ (?P<bug_id>\d+)\]\s+(?P<new>New:)?',
                                  _get_header(message['Subject']))
         if not subjectMatch:
-            raise NotBugmailException, 'Subject does not contain [Bug #]'
+            raise NotBugmailException('Subject does not contain [Bug #]')
         self.bug_id = int(subjectMatch.group('bug_id'))
         self.new    = bool(subjectMatch.group('new'))
 
@@ -365,7 +365,7 @@ class Bugmail:
         # Check if this is a dependency change
         if re.search('^Bug \d+ depends on bug \d+, which changed state',
                      changesPart, re.M):
-            raise NotBugmailException, 'Dependency change.'
+            raise NotBugmailException('Dependency change.')
 
         commentEnd = None
         sig = re.search("^-- $", messageBody, re.M)
@@ -389,7 +389,7 @@ class Bugmail:
         if attachMatch: self.attach_id = int(attachMatch.group(1))
 
     def changed(self, field):
-        return filter(lambda i: i['what'] == field, self._diffArray)
+        return [i for i in self._diffArray if i['what'] == field]
 
     def diffs(self):
         return self._diffArray
