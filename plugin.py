@@ -912,6 +912,7 @@ class Bugzilla(callbacks.PluginRegexp):
                 try:
                     bugmails.append(bugmail.Bugmail(message))
                 except bugmail.NotBugmailException:
+                    self.log.error("Non-Bugmail message received:\n%s" % message.as_string());
                     continue
                 except:
                     self.log.exception('Exception while parsing message:')
