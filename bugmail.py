@@ -31,8 +31,8 @@
 
 import re
 from pprint import pprint
-from email.Header import decode_header
-from email.Iterators import typed_subpart_iterator
+from email.header import decode_header
+from email.iterators import typed_subpart_iterator
 
 #############
 # Constants #

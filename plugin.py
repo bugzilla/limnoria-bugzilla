@@ -708,7 +708,6 @@ class Bugzilla(callbacks.PluginRegexp):
         for name in self.registryValue('bugzillas'):
             registerBugzilla(name)
         importlib.reload(sys)
-        sys.setdefaultencoding('utf-8')
 
     def die(self):
         self.__parent.die()
