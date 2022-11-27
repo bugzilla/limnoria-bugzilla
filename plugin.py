@@ -70,69 +70,6 @@ MAX_DOTLOCK_WAIT = 300
    beginning of the page, should we search through to get the title?'''
 ATTACH_TITLE_SIZE = 512
 
-######################################
-# Utility Functions for Mbox Polling #
-######################################
-
-def _lock_file(f):
-    """Lock file f using lockf and dot locking."""
-    # XXX This seems to be causing problems in directories that we don't own.
-    return
-    dotlock_done = False
-    try:
-        if fcntl:
-            fcntl.lockf(f, fcntl.LOCK_EX)
-
-        pre_lock = _create_temporary(f.name + '.lock')
-        pre_lock.close()
-
-        start_dotlock = time()
-        while (not dotlock_done):
-            try:
-                if hasattr(os, 'link'):
-                    os.link(pre_lock.name, f.name + '.lock')
-                    dotlock_done = True
-                    os.unlink(pre_lock.name)
-                else:
-                    os.rename(pre_lock.name, f.name + '.lock')
-                    dotlock_done = True
-            except OSError as e:
-                if e.errno != errno.EEXIST: raise
-
-            if time() - start_dotlock > MAX_DOTLOCK_WAIT:
-                raise IOError('Timed-out while waiting for dot-lock')
-
-    except:
-        if fcntl:
-            fcntl.lockf(f, fcntl.LOCK_UN)
-        if dotlock_done:
-            os.remove(f.name + '.lock')
-        raise
-
-def _create_temporary(path):
-    """Create a temp file based on path and open for reading and writing."""
-    file_name = '%s.%s.%s' % (path, int(time()), os.getpid())
-    fd = os.open(file_name, os.O_CREAT | os.O_EXCL | os.O_RDWR)
-    try:
-        return open(file_name, 'rb+')
-    finally:
-        os.close(fd)
-
-def _unlock_file(f):
-    """Unlock file f using lockf and dot locking."""
-    if fcntl:
-        fcntl.lockf(f, fcntl.LOCK_UN)
-    if os.path.exists(f.name + '.lock'):
-        os.remove(f.name + '.lock')
-
-def _message_factory(fp):
-    try:
-        return email.message_from_file(fp)
-    except email.Errors.MessageParseError:
-        # Don't return None since that will
-        # stop the mailbox iterator
-        return ''
-
 #######################
 # XML-Parsing Helpers #
 #######################
@@ -847,9 +784,12 @@ class Bugzilla(callbacks.PluginRegexp):
         return BugzillaInstall(self, name)
 
     def _bzByUrl(self, url):
-        domainMatch = re.match('https?://(\S+)/', url, re.I)
-        domain = domainMatch.group(1)
-        installs = self.registryValue('bugzillas', value=False)
+        try:
+            domainMatch = re.match('https?://(\S+)/', url, re.I)
+            domain = domainMatch.group(1)
+            installs = self.registryValue('bugzillas', value=False)
+        except Exception as e:
+            self.log.debug("_bzByUrl something went wrong: %s" % e)
         for name, group in installs._children.items():
             if group.url().lower().find(domain.lower()) > -1:
                 return BugzillaInstall(self, name)
@@ -899,16 +839,30 @@ class Bugzilla(callbacks.PluginRegexp):
 #    def poll(self, irc, msg, args):
         file_name = self.registryValue('mbox')
         if not file_name: return
-        boxFile = open(file_name, 'r+b')
-        _lock_file(boxFile)
-        self.log.debug('Polling mbox %r' % boxFile)
+        self.log.debug('Polling mbox %r' % file_name)
 
         try:
-            box = mailbox.PortableUnixMailbox(boxFile, _message_factory)
+            box = mailbox.mbox(file_name)
+            self.log.debug('opened mbox with %s messages' % box.__len__())
+            try:
+                box.lock()
+            except Exception as e:
+                self.log.error("Failed to lock mailbox: %s" % e)
+                raise e
             bugmails = []
-            for message in box:
+            while box.__len__() > 0:
+                try:
+                    # this also removes the message from the mailbox
+                    message = (box.popitem())[1]
+                except Exception as e:
+                    self.log.debug('Message open failed: %s' % e)
+                    raise e
                 if message == '': continue
-                self.log.debug('Parsing message %s' % message['Message-ID'])
+                try:
+                    self.log.debug('Parsing message %s' % message.get('Message-ID'))
+                except Exception as e:
+                    self.log.debug('Message parse failed: %s' % e)
+                    raise e
                 try:
                     bugmails.append(bugmail.Bugmail(message))
                 except bugmail.NotBugmailException:
@@ -917,12 +871,13 @@ class Bugzilla(callbacks.PluginRegexp):
                 except:
                     self.log.exception('Exception while parsing message:')
                     self.log.error("Message:\n%s" % message.as_string())
-            boxFile.truncate(0)
-        except:
-            self.log.error("Failed to open %s" % boxFile);
+        except Exception as e:
+            self.log.error("Failed to open %s: %s" % (boxFile, e))
         finally:
-            _unlock_file(boxFile)
-            boxFile.close()
+            try:
+                box.close()
+            except Exception as e:
+                self.log.error("Failed to close mailbox: %s" % e)
 
         self._handleBugmails(bugmails)
 
@@ -930,11 +885,12 @@ class Bugzilla(callbacks.PluginRegexp):
         for mail in bugmails:
             try:
                 installation = self._bzByUrl(mail.urlbase)
+                self.log.info('Handling bugmail for bug %s on %s (%s)' % (mail.bug_id, mail.urlbase, installation.name))
+                installation.handleBugmail(mail)
             except BugzillaNotFound:
-                installation = self._defaultBz()
-            self.log.info('Handling bugmail for bug %s on %s (%s)' \
-                           % (mail.bug_id, mail.urlbase, installation.name))
-            installation.handleBugmail(mail)
+                self.log.error("Bugzilla %s not found" % mail.urlbase)
+            except Exception as e:
+                self.log.error("_bzByUrl failed: %s" % e)
 
 Class = Bugzilla
 

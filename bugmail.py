@@ -273,26 +273,26 @@ class Bugmail:
 
     def __init__(self, message):
         # Make sure this is actually a bug mail
-        if not message['X-Bugzilla-Product']:
+        if not message.get('X-Bugzilla-Product'):
             raise NotBugmailException('Email lacks X-Bugzilla-Product header')
         # Initialize fields used lower that aren't always set
         self.dupe_of = None
         self.attach_id = None
 
         # Basic Header Fields
-        self.changer   = _get_header(message['X-Bugzilla-Who'])
-        self.product   = _get_header(message['X-Bugzilla-Product'])
-        self.component = _get_header(message['X-Bugzilla-Component'])
-        self.status    = _get_header(message['X-Bugzilla-Status'])
-        self.severity  = _get_header(message['X-Bugzilla-Severity'])
-        self.priority  = _get_header(message['X-Bugzilla-Priority'])
-        self.assignee  = _get_header(message['X-Bugzilla-Assigned-To'])
+        self.changer   = _get_header(message.get('X-Bugzilla-Who'))
+        self.product   = _get_header(message.get('X-Bugzilla-Product'))
+        self.component = _get_header(message.get('X-Bugzilla-Component'))
+        self.status    = _get_header(message.get('X-Bugzilla-Status'))
+        self.severity  = _get_header(message.get('X-Bugzilla-Severity'))
+        self.priority  = _get_header(message.get('X-Bugzilla-Priority'))
+        self.assignee  = _get_header(message.get('X-Bugzilla-Assigned-To'))
 
         # Get the urlbase of the installation
         if 'In-Reply-To' in message:
-            baseHeader = _get_header(message['In-Reply-To'])
+            baseHeader = _get_header(message.get('In-Reply-To'))
         else:
-            baseHeader = _get_header(message['Message-ID'])
+            baseHeader = _get_header(message.get('Message-ID'))
         baseMatch = re.search('@((?P<scheme>https?)\.)?(?P<url>.+)>$',
                               baseHeader, re.I)
         if baseMatch.group('scheme'):
@@ -304,7 +304,7 @@ class Bugmail:
 
         # Subject Data
         subjectMatch = re.search('\s*\[\w+ (?P<bug_id>\d+)\]\s+(?P<new>New:)?',
-                                 _get_header(message['Subject']))
+                                 _get_header(message.get('Subject')))
         if not subjectMatch:
             raise NotBugmailException('Subject does not contain [Bug #]')
         self.bug_id = int(subjectMatch.group('bug_id'))
@@ -312,11 +312,11 @@ class Bugmail:
 
         # Bugzilla v4.2 sends multipart bugmail
         if not message.is_multipart():
-            messageBody = message.get_payload(decode=True)
+            messageBody = message.get_payload(decode=True).decode("UTF-8")
         else:
             # Extract last text/plain part
             for part in typed_subpart_iterator(message, subtype='plain'):
-                messageBody = part.get_payload(decode=True)
+                messageBody = part.get_payload(decode=True).decode("UTF-8")
 
         # Normalize newlines
         messageBody = messageBody.replace("\r\n", "\n")
