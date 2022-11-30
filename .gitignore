@@ -3,3 +3,14 @@ __pycache__
 
 # ignore Mac Finder droppings
 .DS_Store
+
+# ignore runtime-generated stuff
+/backup
+/conf
+/data
+/logs
+/tmp
+
+# ignore build stuff
+/build
+
