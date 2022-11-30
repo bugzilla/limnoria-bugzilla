@@ -22,7 +22,6 @@ access to your mail spool *directory* (not just the spool file). This is
 because of procmail-compatible file locking and temp files. Often you can do
 this by adding the bot user to the 'mail' group.
 
-Report bugs at https://bugzilla.mozilla.org/enter_bug.cgi?product=Bugzilla&component=Limnoria-Bugzilla%20IRC%20Bot
-
-Contribute fixes by filing a pull request at
-https://github.com/bugzilla/limnoria-bugzilla
+* [Browse existing bug reports](https://bugzilla.mozilla.org/buglist.cgi?product=Bugzilla&component=Limnoria-Bugzilla%20IRC%20Bot&resolution=---)
+* [Report bugs](https://bugzilla.mozilla.org/enter_bug.cgi?product=Bugzilla&component=Limnoria-Bugzilla%20IRC%20Bot)
+* [Contribute fixes by filing a pull request](https://github.com/bugzilla/limnoria-bugzilla)
