@@ -1,0 +1,5 @@
+# ignore the python cache
+__pycache__
+
+# ignore Mac Finder droppings
+.DS_Store
