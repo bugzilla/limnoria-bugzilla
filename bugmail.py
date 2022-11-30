@@ -289,18 +289,23 @@ class Bugmail:
         self.assignee  = _get_header(message.get('X-Bugzilla-Assigned-To'))
 
         # Get the urlbase of the installation
-        if 'In-Reply-To' in message:
-            baseHeader = _get_header(message.get('In-Reply-To'))
+        if 'X-Bugzilla-URL' in message:
+            # If X-Bugzilla-URL exists, just use it.
+            self.urlbase = _get_header(message.get('X-Bugzilla-URL'))
         else:
-            baseHeader = _get_header(message.get('Message-ID'))
-        baseMatch = re.search('@((?P<scheme>https?)\.)?(?P<url>.+)>$',
-                              baseHeader, re.I)
-        if baseMatch.group('scheme'):
-            self.urlbase = "%s://%s" % (baseMatch.group('scheme'),
-                                        baseMatch.group('url'))
-        else:
-            # This is a hack to support bugzilla.gnome.org.
-            self.urlbase = 'http://%s/' % baseMatch.group('url')
+            # Otherwise we have to do some digging...
+            if 'In-Reply-To' in message:
+                baseHeader = _get_header(message.get('In-Reply-To'))
+            else:
+                baseHeader = _get_header(message.get('Message-ID'))
+            baseMatch = re.search('@((?P<scheme>https?)\.)?(?P<url>.+)>$',
+                                  baseHeader, re.I)
+            if baseMatch.group('scheme'):
+                self.urlbase = "%s://%s" % (baseMatch.group('scheme'),
+                                            baseMatch.group('url'))
+            else:
+                # This is a hack to support bugzilla.gnome.org.
+                self.urlbase = 'http://%s/' % baseMatch.group('url')
 
         # Subject Data
         subjectMatch = re.search('\s*\[\w+ (?P<bug_id>\d+)\]\s+(?P<new>New:)?',
