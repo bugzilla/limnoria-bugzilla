@@ -28,6 +28,10 @@ To install, run:
 ```
 pip3 install --user git+https://github.com/bugzilla/limnoria-bugzilla.git
 ```
+then tell your Limnoria
+```
+load Bugzilla
+```
 
 ## Bug Reports and Contributing
 
