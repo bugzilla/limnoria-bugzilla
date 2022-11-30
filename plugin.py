@@ -887,8 +887,8 @@ class Bugzilla(callbacks.PluginRegexp):
                 installation = self._bzByUrl(mail.urlbase)
                 self.log.info('Handling bugmail for bug %s on %s (%s)' % (mail.bug_id, mail.urlbase, installation.name))
                 installation.handleBugmail(mail)
-            except BugzillaNotFound:
-                self.log.error("Bugzilla %s not found" % mail.urlbase)
+            except BugzillaNotFound as e:
+                self.log.error("Bugzilla %s not found: %s" % (mail.urlbase, e))
             except Exception as e:
                 self.log.error("_bzByUrl failed: %s" % e)
 
