@@ -15,18 +15,23 @@ import importlib
 
 # Use this for the version of this plugin.  You may wish to put a CVS keyword
 # in here if you're keeping the plugin in CVS or some similar system.
-__version__ = "3.0.0.1"
+__version__ = "4.0"
 
 # XXX Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.Author('Max Kanat-Alexander', 'mkanat',
-                            'mkanat@bugzilla.org')
+__author__ = supybot.Author('Dave Miller', 'justdave',
+                            'justdave@bugzilla.org')
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
-__contributors__ = {}
+__contributors__ = {
+            supybot.Author('Max Kanat-Alexander', 'mkanat',
+                           'mkanat@bugzilla.org'),
+            supybot.Author('Dave Miller', 'justdave',
+                           'justdave@bugzilla.org')
+}
 
 # This is a url where the most recent plugin package can be downloaded.
-__url__ = 'http://supybot.com/Members/mkanat/Bugzilla'
+__url__ = 'https://github.com/bugzilla/limnoria-bugzilla'
 
 from . import config
 from . import plugin

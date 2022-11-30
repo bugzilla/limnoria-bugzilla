@@ -1,3 +1,5 @@
+# Limnoria Bugzilla Plugin
+
 This plugin for Limnoria (Supybot) supports querying Bugzilla installations,
 showing details about bugs, and reading bugmails sent from Bugzilla to show
 updates in an IRC channel. It supports working with multiple Bugzilla
@@ -19,3 +21,8 @@ Note that if you set it up to parse incoming bugmail, the bot will need WRITE
 access to your mail spool *directory* (not just the spool file). This is
 because of procmail-compatible file locking and temp files. Often you can do
 this by adding the bot user to the 'mail' group.
+
+Report bugs at https://bugzilla.mozilla.org/enter_bug.cgi?product=Bugzilla&component=Limnoria-Bugzilla%20IRC%20Bot
+
+Contribute fixes by filing a pull request at
+https://github.com/bugzilla/limnoria-bugzilla
