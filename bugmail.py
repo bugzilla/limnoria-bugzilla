@@ -232,6 +232,8 @@ def _get_header(str):
    list = decode_header(str)
    retString = ''
    for string, charset in list:
+       if isinstance(string, bytes):
+           string = string.decode(charset)
        retString += string.replace("\n", '').replace("\r", '')
    return retString
 
